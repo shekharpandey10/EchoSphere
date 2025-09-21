@@ -8,7 +8,7 @@ lerna-debug.log*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
+weighty-opus-472709-u9-e6f7b1064e4e.json
 # Runtime data
 pids
 *.pid
