@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { User } from '../models/userModel.js'
 import { ApiError } from "../utils/ApiError.js";
-import { genrateAccessAndRefreshToken, genrateAccessToken, genrateRefreshToken, updateAccessToken } from '../controller/user.contoller.js'
+import { genrateAccessAndRefreshToken, genrateAccessToken, genrateRefreshToken, updateAccessToken, verifyJwt } from '../controller/user.contoller.js'
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { validUserSchema, validLoginSchema } from "../validators/user.validator.js";
 import { ZodError } from "zod";
-import { is, tr } from "zod/v4/locales";
+import { de, is, tr } from "zod/v4/locales";
 const userRouter = Router()
 
 
@@ -56,14 +56,13 @@ userRouter.post("/register", async (req, res) => {
             // throw new ZodError(400, error.errors);
             return res.json(error)
         }
-        throw new ApiError(400, "something went wrong",error);
+        throw new ApiError(400, "something went wrong", error);
     }
 })
 
 userRouter.post('/login', async (req, res) => {
     console.log('login herer')
     const { username, password } = req.body
-
     try {
         const user = await validLoginSchema.parse({ username, password })
         console.log(user)
@@ -81,42 +80,64 @@ userRouter.post('/login', async (req, res) => {
         const { refreshToken, accessToken } = await genrateAccessAndRefreshToken(presentUser._id)
         console.log('problme is')
         const loggedInuser = await User.findById(presentUser._id).select("-password -refreshToken")
-      
+
         res.status(200)
-        .cookie('accessToken',accessToken,{
-            httpOnly:true,
-            secure:true
-        })
-        .cookie('refreshToken',refreshToken,{
-            httpOnly:true,
-            secure:true
-        }).json(
-            new ApiResponse(200,{user:loggedInuser,accessToken,refreshToken},"User logged in successfully")
-        )
+            .cookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: true
+            })
+            .cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: true
+            }).json(
+                new ApiResponse(200, { user: loggedInuser, accessToken, refreshToken }, "User logged in successfully")
+            )
     } catch (error) {
         if (error instanceof ZodError) {
             throw new ApiError(500, 'zod error ')
         }
         console.log(error)
-        throw new ApiError(400, "something unexpected",error)
+        throw new ApiError(400, "something unexpected", error)
     }
 })
 
-userRouter.post('logout',(req,res)=>{
-    
+
+
+userRouter.post('/logout', verifyJwt, async (req, res) => {
+    // console.log(req.user._id)
+    const userId = req.userId
+    try {
+        await User.findByIdAndUpdate(userId, {
+            $unset: {
+                refreshtoken: 1   //this remove the field of the document
+            }
+        }, {
+            new: true  //this option returns the updated document
+        })
+
+        const options = {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none'
+        }
+
+        return res.status(200)
+            .clearCookie('accessToken', options)
+            .clearCookie('refreshToken', options)
+            .json(new ApiResponse(200, {}, "User logged out successfully"))
+    }catch(error){
+        throw new ApiError(400,"Unable to logout the account")
+    }
 })
 
-// const authanticateUser=(req,res,next)=>{
-//     console.log(req)
-//     next()
-// }
+
 // userRouter.post('/update-dp',authanticateUser,(req,res)=>{
 //     res.json({
 //         msg:'updated'
 //     })
 // })
 
-userRouter.post('/refresh-token',updateAccessToken)
+userRouter.post('/refresh-token', updateAccessToken)
 
 
 export { userRouter }

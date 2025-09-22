@@ -24,6 +24,20 @@ export const genrateAccessAndRefreshToken = async (userId) => {
     }
 
 }
+export const verifyJwt = async(req, res, next) => {
+    const token = req?.cookies?.accessToken
+console.log(token)
+    if (!token) {
+        throw new ApiError(401, "Unauthorized request")
+    }
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+    console.log('decoded token ',decodedToken)
+
+    const user =await User.findById(decodedToken?._id)
+    req.userId=decodedToken._id
+    console.log(user ,'this is the user')
+    next()
+}
 export const genrateAccessToken = async (userId) => {
     try {
         const user = await User.findById(userId)
@@ -44,8 +58,6 @@ export const genrateRefreshToken = async (userId) => {
 }
 
 export const updateAccessToken=async (req, res) => {
-    console.log('hlelfalkfj')
-    console.log()
     const refreshTokenIncoming = req?.cookies?.refreshToken || req?.body?.refreshToken||req?.headers['refreshToken']
 
     console.log(refreshTokenIncoming)
