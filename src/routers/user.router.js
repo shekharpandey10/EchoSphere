@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { User } from '../models/userModel.js'
 import { ApiError } from "../utils/ApiError.js";
-import { genrateAccessAndRefreshToken, genrateAccessToken, genrateRefreshToken, updateAccessToken, verifyJwt } from '../controller/user.contoller.js'
+import { genrateAccessAndRefreshToken, genrateRefreshToken, updateRefreshToken, verifyJwt } from '../controller/user.contoller.js'
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { validUserSchema, validLoginSchema } from "../validators/user.validator.js";
 import { ZodError } from "zod";
 import { de, is, tr } from "zod/v4/locales";
+import { bucket } from "../storage/storage.js";
+import { upload } from "../utils/Multer.js";
 const userRouter = Router()
 
 
@@ -125,19 +127,45 @@ userRouter.post('/logout', verifyJwt, async (req, res) => {
             .clearCookie('accessToken', options)
             .clearCookie('refreshToken', options)
             .json(new ApiResponse(200, {}, "User logged out successfully"))
-    }catch(error){
-        throw new ApiError(400,"Unable to logout the account")
+    } catch (error) {
+        throw new ApiError(400, "Unable to logout the account")
     }
 })
 
 
-// userRouter.post('/update-dp',authanticateUser,(req,res)=>{
-//     res.json({
-//         msg:'updated'
-//     })
-// })
+userRouter.post('/update-dp',verifyJwt, upload.single('image'), async (req, res) => {
+    try {
+        // console.log(req.file.buffer.toString())
+        if (!req.file) {
+            throw new ApiError(400, "No image found")
+        }
+        
+        const blob = bucket.file(Date.now() + '_' + req.file.originalname)
+        const blobStream=blob.createWriteStream({
+            resumable:false,
+            contentType:req.file.mimetype
+        })
+        blobStream.on('error',(err)=>{
+            console.log(err)
+            throw new ApiError(500,"File upload failed")
+        })
 
-userRouter.post('/refresh-token', updateAccessToken)
+        blobStream.on('finish',async()=>{
+            const publicUrl=`https://storage.googleapis.com/${bucket.name}/${blob.name}`
+        })
+        // console.log(blob)
+    
+        res.json({
+            msg: "profile picture uploaded",
+        })
+    } catch (error) {
+        console.log(error)
+        throw new ApiError(400, "file upload Error")
+    }
+})
+
+userRouter.post('/refresh-token', updateRefreshToken)
+
 
 
 export { userRouter }

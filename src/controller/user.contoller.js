@@ -3,8 +3,6 @@ import { ApiError } from "../utils/ApiError.js"
 import jwt from 'jsonwebtoken'
 import { ApiResponse } from "../utils/ApiResponse.js"
 
-
-
 export const genrateAccessAndRefreshToken = async (userId) => {
     try {
         const user = await User.findById(userId)
@@ -24,19 +22,24 @@ export const genrateAccessAndRefreshToken = async (userId) => {
     }
 
 }
-export const verifyJwt = async(req, res, next) => {
+export const verifyJwt = async (req, res, next) => {
     const token = req?.cookies?.accessToken
-console.log(token)
+   try{
+     console.log(token)
     if (!token) {
         throw new ApiError(401, "Unauthorized request")
     }
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
-    console.log('decoded token ',decodedToken)
+    console.log('decoded token ', decodedToken)
 
-    const user =await User.findById(decodedToken?._id)
-    req.userId=decodedToken._id
-    console.log(user ,'this is the user')
+    const user = await User.findById(decodedToken?._id)
+    req.userId = decodedToken._id
+    console.log(user, 'this is the user')
     next()
+   }catch(err){
+    console.log(err)
+   throw new ApiError(401, "Unauthorized request")
+   }
 }
 export const genrateAccessToken = async (userId) => {
     try {
@@ -57,8 +60,8 @@ export const genrateRefreshToken = async (userId) => {
     }
 }
 
-export const updateAccessToken=async (req, res) => {
-    const refreshTokenIncoming = req?.cookies?.refreshToken || req?.body?.refreshToken||req?.headers['refreshToken']
+export const updateRefreshToken = async (req, res) => {
+    const refreshTokenIncoming = req?.cookies?.refreshToken || req?.body?.refreshToken || req?.headers['refreshToken']
 
     console.log(refreshTokenIncoming)
     if (!refreshTokenIncoming) {

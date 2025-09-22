@@ -1,4 +1,4 @@
-import {storage} from '@google-cloud/storage'
+import {Storage} from '@google-cloud/storage'
 
 const storage =new Storage({
     projectId:process.env.PROJECT_ID,
