@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { User } from '../models/userModel.js'
 import { ApiError } from "../utils/ApiError.js";
-import { genrateAccessAndRefreshToken, genrateAccessToken, genrateRefreshToken } from '../controller/user.contoller.js'
+import { genrateAccessAndRefreshToken, genrateAccessToken, genrateRefreshToken, updateAccessToken } from '../controller/user.contoller.js'
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { validUserSchema, validLoginSchema } from "../validators/user.validator.js";
 import { ZodError } from "zod";
@@ -83,11 +83,11 @@ userRouter.post('/login', async (req, res) => {
         const loggedInuser = await User.findById(presentUser._id).select("-password -refreshToken")
       
         res.status(200)
-        .cookie('accesstoken',accessToken,{
+        .cookie('accessToken',accessToken,{
             httpOnly:true,
             secure:true
         })
-        .cookie('refreshtoken',refreshToken,{
+        .cookie('refreshToken',refreshToken,{
             httpOnly:true,
             secure:true
         }).json(
@@ -101,6 +101,22 @@ userRouter.post('/login', async (req, res) => {
         throw new ApiError(400, "something unexpected",error)
     }
 })
+
+userRouter.post('logout',(req,res)=>{
+    
+})
+
+// const authanticateUser=(req,res,next)=>{
+//     console.log(req)
+//     next()
+// }
+// userRouter.post('/update-dp',authanticateUser,(req,res)=>{
+//     res.json({
+//         msg:'updated'
+//     })
+// })
+
+userRouter.post('/refresh-token',updateAccessToken)
 
 
 export { userRouter }
