@@ -140,7 +140,7 @@ userRouter.post('/update-dp',verifyJwt, upload.single('image'), async (req, res)
             throw new ApiError(400, "No image found")
         }
         
-        const blob = bucket.file(Date.now() + '_' + req.file.originalname)
+        const blob = bucket.file(`dp/`+Date.now() + '_' + req.file.originalname)
         const blobStream=blob.createWriteStream({
             resumable:false,
             contentType:req.file.mimetype
@@ -152,12 +152,23 @@ userRouter.post('/update-dp',verifyJwt, upload.single('image'), async (req, res)
 
         blobStream.on('finish',async()=>{
             const publicUrl=`https://storage.googleapis.com/${bucket.name}/${blob.name}`
+
+            if(publicUrl){
+               const user= await User.findById(req.userId)
+               console.log(user)
+               await user.updateOne({profilePicture:publicUrl})
+            }
+            console.log(publicUrl)
+             res.json({
+            msg: "profile picture uploaded",
+            publicUrl
+        })
         })
         // console.log(blob)
+        console.log('hello shekhar ')
+        blobStream.end(req.file.buffer)
     
-        res.json({
-            msg: "profile picture uploaded",
-        })
+       
     } catch (error) {
         console.log(error)
         throw new ApiError(400, "file upload Error")
