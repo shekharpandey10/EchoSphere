@@ -133,42 +133,42 @@ userRouter.post('/logout', verifyJwt, async (req, res) => {
 })
 
 
-userRouter.post('/update-dp',verifyJwt, upload.single('image'), async (req, res) => {
+userRouter.post('/update-dp', verifyJwt, upload.single('image'), async (req, res) => {
     try {
         // console.log(req.file.buffer.toString())
         if (!req.file) {
             throw new ApiError(400, "No image found")
         }
-        
-        const blob = bucket.file(`dp/`+Date.now() + '_' + req.file.originalname)
-        const blobStream=blob.createWriteStream({
-            resumable:false,
-            contentType:req.file.mimetype
+
+        const blob = bucket.file(`dp/` + Date.now() + '_' + req.file.originalname)
+        const blobStream = blob.createWriteStream({
+            resumable: false,
+            contentType: req.file.mimetype
         })
-        blobStream.on('error',(err)=>{
+        blobStream.on('error', (err) => {
             console.log(err)
-            throw new ApiError(500,"File upload failed")
+            throw new ApiError(500, "File upload failed")
         })
 
-        blobStream.on('finish',async()=>{
-            const publicUrl=`https://storage.googleapis.com/${bucket.name}/${blob.name}`
+        blobStream.on('finish', async () => {
+            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`
 
-            if(publicUrl){
-               const user= await User.findById(req.userId)
-               console.log(user)
-               await user.updateOne({profilePicture:publicUrl})
+            if (publicUrl) {
+                const user = await User.findById(req.userId)
+                console.log(user)
+                await user.updateOne({ profilePicture: publicUrl })
             }
             console.log(publicUrl)
-             res.json({
-            msg: "profile picture uploaded",
-            publicUrl
-        })
+            res.json({
+                msg: "profile picture uploaded",
+                publicUrl
+            })
         })
         // console.log(blob)
         console.log('hello shekhar ')
         blobStream.end(req.file.buffer)
-    
-       
+
+
     } catch (error) {
         console.log(error)
         throw new ApiError(400, "file upload Error")
@@ -177,6 +177,30 @@ userRouter.post('/update-dp',verifyJwt, upload.single('image'), async (req, res)
 
 userRouter.post('/refresh-token', updateRefreshToken)
 
+userRouter.get('/user-details', verifyJwt, async(req, res) => {
+    const userId = req.userId
+console.log('hello from the user details',userId)
+    try {
+      const user= await User.findById(userId).select('-password -refreshtoken')
+      return res.status(200).json( new ApiResponse(200,{user,},"User fetch successfully"))
+    } catch (error) {
+        throw new ApiError(401,'unauthorize user')
+    }
+})
 
-
+userRouter.get('/search-user',verifyJwt,async(req,res)=>{
+    const {query}=req.query
+    try{
+      const users=await User.find({
+        $or:[
+            {username:{$regex:query,$options:'i'}},
+            {firstname:{$regex:query,$options:'i'}},
+            {lastname:{$regex:query,$options:'i'}},
+        ]
+      }).select('-password -refreshtoken -createdAt -updatedAt')
+      res.status(200).json(new ApiResponse(200,{users},"Search results fetched successfully"))
+    }catch(error){
+        throw new ApiError(400,"unable to get the users")
+    }
+})
 export { userRouter }

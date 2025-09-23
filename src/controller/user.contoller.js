@@ -34,7 +34,7 @@ export const verifyJwt = async (req, res, next) => {
 
     const user = await User.findById(decodedToken?._id)
     req.userId = decodedToken._id
-    console.log(user, 'this is the user')
+    // console.log(user, 'this is the user')
     next()
    }catch(err){
     console.log(err)
