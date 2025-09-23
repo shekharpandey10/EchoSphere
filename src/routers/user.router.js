@@ -177,30 +177,43 @@ userRouter.post('/update-dp', verifyJwt, upload.single('image'), async (req, res
 
 userRouter.post('/refresh-token', updateRefreshToken)
 
-userRouter.get('/user-details', verifyJwt, async(req, res) => {
+userRouter.get('/user-details', verifyJwt, async (req, res) => {
     const userId = req.userId
-console.log('hello from the user details',userId)
+    console.log('hello from the user details', userId)
     try {
-      const user= await User.findById(userId).select('-password -refreshtoken')
-      return res.status(200).json( new ApiResponse(200,{user,},"User fetch successfully"))
+        const user = await User.findById(userId).select('-password -refreshtoken')
+        return res.status(200).json(new ApiResponse(200, { user, }, "User fetch successfully"))
     } catch (error) {
-        throw new ApiError(401,'unauthorize user')
+        throw new ApiError(401, 'unauthorize user')
     }
 })
 
-userRouter.get('/search-user',verifyJwt,async(req,res)=>{
-    const {query}=req.query
-    try{
-      const users=await User.find({
-        $or:[
-            {username:{$regex:query,$options:'i'}},
-            {firstname:{$regex:query,$options:'i'}},
-            {lastname:{$regex:query,$options:'i'}},
-        ]
-      }).select('-password -refreshtoken -createdAt -updatedAt')
-      res.status(200).json(new ApiResponse(200,{users},"Search results fetched successfully"))
+userRouter.get('/search-user', verifyJwt, async (req, res) => {
+    const { query } = req.query
+    try {
+        const users = await User.find({
+            $or: [
+                { username: { $regex: query, $options: 'i' } },
+                { firstname: { $regex: query, $options: 'i' } },
+                { lastname: { $regex: query, $options: 'i' } },
+            ]
+        }).select('-password -refreshtoken -createdAt -updatedAt')
+        res.status(200).json(new ApiResponse(200, { users }, "Search results fetched successfully"))
+    } catch (error) {
+        throw new ApiError(400, "unable to get the users")
+    }
+})
+
+userRouter.patch('/update-bio', verifyJwt, async (req, res) => {
+    const { bio } = req.body
+    const userId = req.userId
+    try {
+        const user = await User.findById(userId)
+        const isUpdated = await user.updateOne({ bio: bio })
+        console.log(isUpdated,'the voss')
+        res.status(200).json(new ApiResponse(200, "Bio updated successfully"))
     }catch(error){
-        throw new ApiError(400,"unable to get the users")
+        throw new ApiError(400,"Couldn't update the bio")
     }
 })
 export { userRouter }
